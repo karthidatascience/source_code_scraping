@@ -1,56 +1,47 @@
-from PyPDF2 import PdfReader
+# import tabula
+from PyPDF2 import PdfReader, PdfWriter
+import pandas as pd
 import re
 import pdfplumber
-
-# File paths
-pdf_path = r"C:\Users\karthim\Downloads\va500_.pdf"
-output_txt_path = r"C:\Users\karthim\Downloads\va500_.txt"
-
-# Open output file
-with open(output_txt_path, 'w', encoding='utf-8') as output_file:
+rows=[]
+extracted_text1=[]
+pdf_path = fr"C:\Users\karthim\Downloads\va500_.pdf"
+with open('va1200.txt', 'w', encoding='utf-8') as output_file:
     with pdfplumber.open(pdf_path) as pdf:
         full_text = ""
-
         for page in pdf.pages:
-            text = page.extract_text()
-            if text:
-                full_text += text + "\n"
-
+            full_text += page.extract_text() + "\n"
+        # print(full_text)
         try:
-            sections = full_text.split("------------------------------------------------------------------------------------------------------------------------------")
-            if len(sections) > 1:
-                sections = sections[1:-1]  # Remove first and last empty sections
 
-            for idx, section in enumerate(sections):
-                lines = section.splitlines()
-
-                if len(lines) < 5:  # Ensure enough lines exist before processing
-                    continue
-
-                line = lines[1]
-                words = line.split()
-
-                if len(words) < 7:  # Ensure minimum elements exist in the line
-                    continue
-
-                total, impr, land, code = words[-1], words[-2], words[-3], words[-4]
-                ac3, ac2, ac1 = words[-5], words[-6], words[-7]
-
-                # Extract address
-                address_match = re.split(r' \d{3} ', line)
-                address = address_match[0] if address_match else "Unknown"
-
+            s1=full_text.split("------------------------------------------------------------------------------------------------------------------------------")
+            if len(s1) > 1:
+                del s1[0]
+                del s1[-1]
+            for idx, s1 in enumerate(s1):
+                lines = s1.splitlines()
+                # print(lines)
+                line=lines[1]
+                total=line.split(' ')[-1]
+                impr = line.split(' ')[-2]
+                land = line.split(' ')[-3]
+                code=line.split(' ')[-4]
+                all=line.split(' ')[:-4]
+                # print(str(all))
+                acc=re.findall(r"'\d{3,5}',.*?'\]",str(all))
+                # print(acc)
+                address = re.split(r' \d{3} ', line)
+                # print(address[0])
                 street = lines[3]
-                street_parts = street.split()
-                st1 = street_parts[-1] if street_parts else "Unknown"
-                st2 = " ".join(street_parts[:-1]) if street_parts else "Unknown"
+                st1=street.split(' ')[-1]
+                # print(st1)
+                st2=street.split(' ')[:-1]
+                # print(st2)
 
-                # Construct output row
-                output_row = f"{total}|{impr}|{land}|{code}|{ac1}|{ac2}|{ac3}|{address}|{st1}|{st2}|{lines[2]}|{lines[4]}"
-                print(output_row)
+                print(f'{total}|{impr}|{land}|{code}|{str(all)}|{acc}|{address[0]}|{st1}|{st2}|{lines[2]}|{lines[4]}')
+                output_row = f'{total}|{impr}|{land}|{code}|{str(all)}|{acc}|{address[0]}|{st1}|{st2}|{lines[2]}|{lines[4]}'
+        except:
+            output_row=''
+        output_file.write(output_row + '\n')
 
-                # Write to file
-                output_file.write(output_row + '\n')
 
-        except Exception as e:
-            print(f"Error processing PDF: {e}")
